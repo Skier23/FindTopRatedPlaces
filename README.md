@@ -13,4 +13,4 @@ How to use the application:
   https://developers.google.com/maps/documentation/places/web-service/cloud-setup
   https://console.cloud.google.com/google/maps-apis/start
   NOTE: You will not be charged if you are on a free trial and google provides a 200$ credit each month which correlates to roughly 12,000 api calls. If you are worried about getting charged, you can setup limits in google's api and you can set an api limit in this application when launching it to ensure that there is no chance of being charged.
-
+2. Find the gps coordinates of where you want to search for. (This is likely either your house, hotel, or the center of a city) You can get gps coordinates from an address by using a website such as https://get-direction.com/address-to-lat-long.html
