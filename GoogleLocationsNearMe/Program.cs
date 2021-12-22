@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using GeoCoordinatePortable;
 
 namespace GoogleLocationsNearMe
@@ -106,7 +107,8 @@ namespace GoogleLocationsNearMe
             {
                 writer.WriteLine("sep=,");
                 // We write out quite a few different fields of info on each place so that most use cases will have enough information. Also, the googleplaceid is included in the results in case more information is required.
-                writer.WriteLine("Restaurant Name,Rating,Number of Ratings,Distance(mi),Website,Phone,Address,Sun,Mon,Tues,Wed,Thurs,Fri,Sat,Latitude,Longitude,GooglePlaceId");
+                string placeType = CapitalizeAfter(FirstCharToUpper(DataProcessor.PlaceType).Replace("_", " "), new List<char> { ' ' });
+                writer.WriteLine($"{placeType} Name,Rating,Number of Ratings,Distance(mi),Website,Phone,Address,Sun,Mon,Tues,Wed,Thurs,Fri,Sat,Latitude,Longitude,GooglePlaceId");
                 foreach (Place place in toWrite)
                 {
                     string[] hours = new string[7];
@@ -145,6 +147,26 @@ namespace GoogleLocationsNearMe
                         $"{NullCheck(hours[2])},{NullCheck(hours[3])},{NullCheck(hours[4])},{NullCheck(hours[5])},{NullCheck(hours[6])},{place.Geo.Location.Latitude},{place.Geo.Location.Longitude},{place.PlaceId}");
                 }
             }
+        }
+
+        public static string FirstCharToUpper(this string input) =>
+        input switch
+        {
+            null => throw new ArgumentNullException(nameof(input)),
+            "" => throw new ArgumentException($"{nameof(input)} cannot be empty", nameof(input)),
+            _ => input[0].ToString().ToUpper() + input.Substring(1)
+        };
+
+        public static string CapitalizeAfter(string s, List<char> chars)
+        {
+            var charsHash = new HashSet<char>(chars);
+            StringBuilder sb = new StringBuilder(s);
+            for (int i = 0; i < sb.Length - 2; i++)
+            {
+                if (charsHash.Contains(sb[i]) && sb[i + 1] == ' ')
+                    sb[i + 2] = char.ToUpper(sb[i + 2]);
+            }
+            return sb.ToString();
         }
     }
 }
