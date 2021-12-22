@@ -6,7 +6,7 @@ I was very dissapointed with google's system for finding places nearby. Specific
 Some use cases:
  - Finding the best local restaurants to eat at
  - Finding a nice movie theatre to see a movie
- - Finding nice lodging, parks, amusement parks, etc.
+ - Finding nice lodging, tourist attractions, parks, amusement parks, etc.
 
 See a full list of supported places here:
 https://developers.google.com/maps/documentation/places/web-service/supported_types
