@@ -1,7 +1,7 @@
 # FindTopRatedPlaces
 This is an application to find the highest rated places (created for restaurants) in an area using google's ratings.
 
-I was very dissapointed with google's system for finding places nearby. Specifically, I had troubles finding good restaurants nearby. The issue is that google does not provide an option to sort restaurants (or places) in a city or area by ratings. This application will find all places within the specified area around the given location of the given type and sort them by highest ratings and output all relevant information to these places to a csv file.
+I was very dissapointed with google's system for finding places nearby. Specifically, I had troubles finding good restaurants nearby. The issue is that google does not provide an option to sort restaurants (or places) in a city or area by ratings. This application will find all places within the specified area around the given location of the given type and sort them by highest ratings and output all relevant information from these places to a csv file.
 
 Some use cases:
  - Finding the best local restaurants to eat at
