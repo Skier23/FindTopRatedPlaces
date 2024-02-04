@@ -3,3 +3,6 @@
 ################################################################################
 
 /GoogleLocationsNearMe/apikey.txt
+/GoogleLocationsNearMe/bin/Release
+/GoogleLocationsNearMe/obj
+/.vs

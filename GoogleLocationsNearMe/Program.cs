@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using GeoCoordinatePortable;
 
 namespace GoogleLocationsNearMe
@@ -9,13 +10,13 @@ namespace GoogleLocationsNearMe
     public static class Program
     {
         public static GeoCoordinate originCoord;
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             double originlongitude;
             double originlatitude;
 
             Console.WriteLine(@"Enter your google maps api key (see for more info: https://developers.google.com/maps/documentation/javascript/get-api-key)");
-            API.apiKey = Console.ReadLine();
+            APIV2.apiKey = Console.ReadLine();
 
             Console.WriteLine("Enter the Latitude of the gps coordinate that you want to search from.");
             while (!double.TryParse(Console.ReadLine(), out originlatitude))
@@ -68,7 +69,8 @@ namespace GoogleLocationsNearMe
             DataProcessor.ApiCallLimit = maxApiCalls;
 
             Console.WriteLine(@$"Searching for {placeType} in a {radius} meter radius around {originlatitude},{originlongitude}...");
-            List<Place> placeResults = DataProcessor.FindPlacesInCriteria(originCoord, radius, placeType);
+            List<PlaceV2> placeResults = await DataProcessor.FindPlacesInCriteria(originCoord, radius, placeType);
+
             Console.WriteLine($"Finished processing and found {placeResults.Count} valid results using {DataProcessor.apiCalls} API calls.");
             string filePath = @$"{placeType}Results.csv";
             Console.WriteLine($"Writing results to {filePath}");
@@ -85,7 +87,7 @@ namespace GoogleLocationsNearMe
         }
 
         // write all the places to a csv file
-        public static void writeToCsv(string csvPath, List<Place> toWrite)
+        public static void writeToCsv(string csvPath, List<PlaceV2> toWrite)
         {
             try
             {
@@ -100,7 +102,7 @@ namespace GoogleLocationsNearMe
         }
 
         // CSV writer helper
-        public static void writeToCsvHelper(string csvPath, List<Place> toWrite)
+        public static void writeToCsvHelper(string csvPath, List<PlaceV2> toWrite)
         {
             using (StreamWriter writer = new StreamWriter(new FileStream(csvPath,
                FileMode.Create, FileAccess.Write)))
@@ -108,44 +110,44 @@ namespace GoogleLocationsNearMe
                 writer.WriteLine("sep=,");
                 // We write out quite a few different fields of info on each place so that most use cases will have enough information. Also, the googleplaceid is included in the results in case more information is required.
                 string placeType = CapitalizeAfter(FirstCharToUpper(DataProcessor.PlaceType).Replace("_", " "), new List<char> { ' ' });
-                writer.WriteLine($"{placeType} Name,Rating,Number of Ratings,Distance(mi),Website,Phone,Address,Sun,Mon,Tues,Wed,Thurs,Fri,Sat,Latitude,Longitude,GooglePlaceId");
-                foreach (Place place in toWrite)
+                writer.WriteLine($"{placeType} Name,Primary Type,Price,Editorial Summary,Rating,Number of Ratings,Distance(mi),Website,Google Maps Page,Accept Reservations," +
+                    $"Serves Breakfast,Serves Lunch,Serves Dinner,Serves Vegatarian,Serves Dessert,Has Outdoor Seating,Phone,Address,Sun,Mon,Tues,Wed,Thurs,Fri,Sat,Latitude,Longitude,GooglePlaceId");
+                foreach (PlaceV2 place in toWrite)
                 {
                     string[] hours = new string[7];
-                    if (place.Details?.Open != null)
+                    bool hoursSpecified = place.Details?.HoursOpen is not null;
+                    if (hoursSpecified)
                     {
-                        foreach (Period timePeriod in place.Details.Open?.Periods)
+                        foreach (PeriodV2 timePeriod in place.Details.HoursOpen?.Periods)
                         {
-                            switch (timePeriod.Open.ParseTime().DayOfWeek)
-                            {
-                                case DayOfWeek.Monday:
-                                    hours[1] = timePeriod.ToString();
-                                    break;
-                                case DayOfWeek.Tuesday:
-                                    hours[2] = timePeriod.ToString();
-                                    break;
-                                case DayOfWeek.Wednesday:
-                                    hours[3] = timePeriod.ToString();
-                                    break;
-                                case DayOfWeek.Thursday:
-                                    hours[4] = timePeriod.ToString();
-                                    break;
-                                case DayOfWeek.Friday:
-                                    hours[5] = timePeriod.ToString();
-                                    break;
-                                case DayOfWeek.Saturday:
-                                    hours[6] = timePeriod.ToString();
-                                    break;
-                                case DayOfWeek.Sunday:
-                                    hours[0] = timePeriod.ToString();
-                                    break;
-                            }
+                            hours[timePeriod.Open.Day ?? 0] = timePeriod.ToString();
                         }
                     }
-                    GeoCoordinate thisCoord = new GeoCoordinate(place.Geo.Location.Latitude, place.Geo.Location.Longitude);
-                    writer.WriteLine($"\"{NullCheck(place.Name)}\",{place.Details?.Rating},{place.Details?.TotalRatings},{String.Format("{0:0.##}", thisCoord.GetDistanceTo(originCoord) * 0.000621371192)},{NullCheck(place.Details?.Website)},{NullCheck(place.Details?.Phone)},\"{NullCheck(place.Address)}\",{NullCheck(hours[0])},{NullCheck(hours[1])}," +
-                        $"{NullCheck(hours[2])},{NullCheck(hours[3])},{NullCheck(hours[4])},{NullCheck(hours[5])},{NullCheck(hours[6])},{place.Geo.Location.Latitude},{place.Geo.Location.Longitude},{place.PlaceId}");
+                    GeoCoordinate thisCoord = new GeoCoordinate(place.Details.Coordinates.Latitude, place.Details.Coordinates.Longitude);
+                    writer.WriteLine($"\"{NullCheck(place.Name.Name)}\",{NullCheck(place.Details?.PrimaryType?.Name)},{(place.Details?.Price ?? PriceLevel.PRICE_LEVEL_UNSPECIFIED).ToFriendlyString()},\"{NullCheck(place.Details?.EditorialSummary?.Name)}\",{place.Details?.Rating},{place.Details?.TotalRatings},{String.Format("{0:0.##}", thisCoord.GetDistanceTo(originCoord) * 0.000621371192)},{NullCheck(place.Details?.WebsiteUri)}," +
+                        $"{NullCheck(place.Details?.GoogleMapsUri)},{NullCheck(place.Details?.Reservable?.ToString())},{NullCheck(place.Details?.ServesBreakfast?.ToString())},{NullCheck(place.Details?.ServesLunch?.ToString())},{NullCheck(place.Details?.ServesDinner?.ToString())},{NullCheck(place.Details?.ServesVegatarian?.ToString())},{NullCheck(place.Details?.ServesDessert?.ToString())}," +
+                        $"{NullCheck(place.Details?.OutdoorSeating?.ToString())},{NullCheck(place.Details?.PhoneNumber)},\"{NullCheck(place.Details?.Address)}\",{HoursString(hoursSpecified, hours[0])},{HoursString(hoursSpecified, hours[1])}," +
+                        $"{HoursString(hoursSpecified, hours[2])},{HoursString(hoursSpecified, hours[3])},{HoursString(hoursSpecified, hours[4])},{HoursString(hoursSpecified, hours[5])},{HoursString(hoursSpecified, hours[6])},{place.Details?.Coordinates?.Latitude + ""},{place.Details?.Coordinates?.Longitude + ""},{place.PlaceId}");
                 }
+            }
+        }
+
+        public static string HoursString(bool hoursOpenSpecified, string? hoursString)
+        {
+            if (hoursOpenSpecified)
+            {
+                if (hoursString is null)
+                {
+                    return "Closed";
+                }
+                else
+                {
+                    return hoursString;
+                }
+            }
+            else
+            {
+                return "";
             }
         }
 
